@@ -1,60 +1,59 @@
 import React from 'react';
-import { Image, useColorScheme, StyleSheet } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import HomeScreen from '../screens/HomeScreen';
-import ExploreScreen from '../screens/ExploreScreen';
-import { Colors } from '@/constants/theme';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+import HomeScreen from '../screens/home/HomeScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import { RootStackParamList } from './navigationTypes';
 
-const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function AppNavigator() {
-  const scheme = useColorScheme();
-  const theme = Colors[scheme === 'unspecified' || !scheme ? 'light' : scheme];
-
+function AppNavigator() {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: theme.text,
-        tabBarInactiveTintColor: theme.textSecondary,
-        tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopColor: theme.backgroundElement,
-          borderTopWidth: 1,
-        },
-        tabBarIcon: ({ color, size, focused }) => {
-          let iconSource;
-          if (route.name === 'Home') {
-            iconSource = require('@/assets/images/tabIcons/home.png');
-          } else if (route.name === 'Explore') {
-            iconSource = require('@/assets/images/tabIcons/explore.png');
-          }
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Login"
+        screenOptions={{
+          headerBackTitle: 'Back',
+        }}>
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{
+            title: 'Login',
+            headerShown: false,
+          }}
+        />
 
-          return (
-            <Image
-              source={iconSource}
-              style={[
-                styles.tabIcon,
-                {
-                  tintColor: color,
-                  width: size,
-                  height: size,
-                  opacity: focused ? 1 : 0.6,
-                },
-              ]}
-              resizeMode="contain"
-            />
-          );
-        },
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Explore" component={ExploreScreen} />
-    </Tab.Navigator>
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+          options={{
+            title: 'Create Account',
+          }}
+        />
+
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            title: 'BabyNutri',
+            headerBackVisible: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            title: 'Profile',
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  tabIcon: {},
-});
+export default AppNavigator;
