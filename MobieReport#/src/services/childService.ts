@@ -1,82 +1,60 @@
 import { Child } from '../types/child';
+import { Platform } from 'react-native';
 
-// Mock Data
-let mockChildren: Child[] = [
-  {
-    id: '1',
-    name: 'Emily Tran',
-    age: 3,
-    gender: 'Female',
-    height: 95,
-    weight: 14.5,
-    allergies: ['Peanuts'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Kevin Nguyen',
-    age: 5,
-    gender: 'Male',
-    height: 110,
-    weight: 18.2,
-    allergies: [],
-    createdAt: new Date().toISOString(),
-  }
-];
+const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000/api' : 'http://localhost:5000/api';
 
 export const childService = {
   getChildren: async (): Promise<Child[]> => {
-    return new Promise((resolve) => setTimeout(() => resolve([...mockChildren]), 500));
+    try {
+      const response = await fetch(`${BASE_URL}/children`);
+      if (!response.ok) throw new Error('Failed to fetch children');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
   },
 
   getChildById: async (id: string): Promise<Child | undefined> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const child = mockChildren.find(c => c.id === id);
-        resolve(child);
-      }, 500);
-    });
+    try {
+      const response = await fetch(`${BASE_URL}/children/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch child');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      return undefined;
+    }
   },
 
   createChild: async (childData: Omit<Child, 'id' | 'createdAt'>): Promise<Child> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newChild: Child = {
-          ...childData,
-          id: Math.random().toString(36).substring(7),
-          createdAt: new Date().toISOString(),
-        };
-        mockChildren.push(newChild);
-        resolve(newChild);
-      }, 500);
+    const response = await fetch(`${BASE_URL}/children`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(childData),
     });
+    if (!response.ok) throw new Error('Failed to create child');
+    return await response.json();
   },
 
   updateChild: async (id: string, childData: Partial<Child>): Promise<Child> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockChildren.findIndex(c => c.id === id);
-        if (index !== -1) {
-          mockChildren[index] = {
-            ...mockChildren[index],
-            ...childData,
-            updatedAt: new Date().toISOString(),
-          };
-          resolve(mockChildren[index]);
-        } else {
-          reject(new Error('Child not found'));
-        }
-      }, 500);
+    const response = await fetch(`${BASE_URL}/children/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(childData),
     });
+    if (!response.ok) throw new Error('Failed to update child');
+    return await response.json();
   },
 
   deleteChild: async (id: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const initialLength = mockChildren.length;
-        mockChildren = mockChildren.filter(c => c.id !== id);
-        resolve(mockChildren.length < initialLength);
-      }, 500);
-    });
+    try {
+      const response = await fetch(`${BASE_URL}/children/${id}`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
   }
 };
