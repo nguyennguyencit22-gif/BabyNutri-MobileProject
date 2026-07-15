@@ -13,9 +13,9 @@ const {
 
 const auth = require("../middleware/auth");
 
-// ==========================================
+// 
 // ROUTES
-// ==========================================
+// 
 
 router.get("/", getRecipes);
 router.get("/:id", getRecipeById);
