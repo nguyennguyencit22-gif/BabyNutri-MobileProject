@@ -289,3 +289,179 @@ exports.createOrUpdateRating = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+// ==========================================
+// CREATE RECIPE
+// ==========================================
+// ==========================================
+exports.createRecipe = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const {
+            name, description, imageUrl, calories, monthAge,
+            mealTypeId, cookingTime, prepTime, serves,
+            ingredients, steps,
+        } = req.body;
+
+        if (!name || !calories || !monthAge) {
+            return res.status(400).json({ message: "name, calories, monthAge là bắt buộc" });
+        }
+
+        const expertId = req.user?.id || null;
+
+        await connection.beginTransaction();
+
+        const [result] = await connection.query(
+            `INSERT INTO recipes
+             (name, description, image_url, expert_id, meal_type_id, cooking_time, prep_time, serves, month_age, calories)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, description || '', imageUrl || '', expertId, mealTypeId || null,
+             cookingTime || 0, prepTime || 0, serves || 1, monthAge, calories]
+        );
+        const recipeId = result.insertId;
+
+        if (Array.isArray(ingredients)) {
+            for (const ing of ingredients) {
+                if (!ing.name) continue;
+                let [existing] = await connection.query(
+                    `SELECT id FROM ingredients WHERE name = ?`, [ing.name]
+                );
+                let ingredientId;
+                if (existing.length > 0) {
+                    ingredientId = existing[0].id;
+                } else {
+                    const [inserted] = await connection.query(
+                        `INSERT INTO ingredients (name) VALUES (?)`, [ing.name]
+                    );
+                    ingredientId = inserted.insertId;
+                }
+                await connection.query(
+                    `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)`,
+                    [recipeId, ingredientId, ing.quantity || '']
+                );
+            }
+        }
+
+        if (Array.isArray(steps)) {
+            for (let i = 0; i < steps.length; i++) {
+                if (!steps[i]) continue;
+                await connection.query(
+                    `INSERT INTO recipe_steps (recipe_id, step_number, description) VALUES (?, ?, ?)`,
+                    [recipeId, i + 1, steps[i]]
+                );
+            }
+        }
+
+        await connection.commit();
+        res.status(201).json({ message: "Recipe created", id: recipeId });
+    } catch (err) {
+        try { await connection.rollback(); } catch {}
+        console.error("createRecipe error:", err);
+        res.status(500).json({ message: "Failed to create recipe", error: err.message });
+    } finally {
+        connection.release();
+    }
+};
+
+// ==========================================
+// UPDATE RECIPE (chỉ sửa field chính, không đụng ingredients/steps)
+// ==========================================
+exports.updateRecipe = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { name, description, imageUrl, calories, monthAge, mealTypeId, cookingTime, prepTime, serves } = req.body;
+
+        const [existing] = await db.query(`SELECT id FROM recipes WHERE id = ?`, [id]);
+        if (!existing.length) return res.status(404).json({ message: "Recipe not found" });
+
+        await db.query(
+            `UPDATE recipes SET
+                name = COALESCE(?, name),
+                description = COALESCE(?, description),
+                image_url = COALESCE(?, image_url),
+                calories = COALESCE(?, calories),
+                month_age = COALESCE(?, month_age),
+                meal_type_id = COALESCE(?, meal_type_id),
+                cooking_time = COALESCE(?, cooking_time),
+                prep_time = COALESCE(?, prep_time),
+                serves = COALESCE(?, serves)
+             WHERE id = ?`,
+            [name, description, imageUrl, calories, monthAge, mealTypeId, cookingTime, prepTime, serves, id]
+        );
+
+        res.json({ message: "Recipe updated" });
+    } catch (err) {
+        console.error("updateRecipe error:", err);
+        res.status(500).json({ message: "Failed to update recipe", error: err.message });
+    }
+};
+
+// ==========================================
+// DELETE RECIPE (xóa dữ liệu liên quan trước do FK constraint)
+// ==========================================
+exports.deleteRecipe = async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        const [existing] = await db.query(`SELECT id FROM recipes WHERE id = ?`, [id]);
+        if (!existing.length) return res.status(404).json({ message: "Recipe not found" });
+
+        await db.query(`DELETE FROM recipe_comments WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM recipe_ratings WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM recipe_assets WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM recipe_allergies WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM recipe_steps WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM recipe_ingredients WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM favorite_recipes WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM meal_plan_items WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM user_recipe_history WHERE recipe_id = ?`, [id]);
+        await db.query(`DELETE FROM recipes WHERE id = ?`, [id]);
+
+        res.json({ message: "Recipe deleted" });
+    } catch (err) {
+        console.error("deleteRecipe error:", err);
+        res.status(500).json({ message: "Failed to delete recipe", error: err.message });
+    }
+};
+
+// ==========================================
+// SEARCH RECIPES
+// ==========================================
+exports.searchRecipes = async (req, res) => {
+    try {
+        const { query, mealTypeId, minAge, maxAge } = req.query;
+
+        let sql = `
+            SELECT r.*, mt.name AS mealType, u.full_name AS expertName
+            FROM recipes r
+            LEFT JOIN meal_types mt ON r.meal_type_id = mt.id
+            LEFT JOIN users u ON r.expert_id = u.id
+            WHERE 1 = 1
+        `;
+        const params = [];
+
+        if (query) {
+            sql += ` AND r.name LIKE ?`;
+            params.push(`%${query}%`);
+        }
+        if (mealTypeId) {
+            sql += ` AND r.meal_type_id = ?`;
+            params.push(mealTypeId);
+        }
+        if (minAge) {
+            sql += ` AND r.month_age >= ?`;
+            params.push(minAge);
+        }
+        if (maxAge) {
+            sql += ` AND r.month_age <= ?`;
+            params.push(maxAge);
+        }
+
+        sql += ` ORDER BY r.id DESC`;
+
+        const [rows] = await db.query(sql, params);
+        res.json(rows);
+    } catch (err) {
+        console.error("searchRecipes error:", err);
+        res.status(500).json({ message: "Failed to search recipes", error: err.message });
+    }
+};

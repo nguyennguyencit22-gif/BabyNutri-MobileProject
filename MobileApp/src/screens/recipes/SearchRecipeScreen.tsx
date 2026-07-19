@@ -5,13 +5,16 @@ import { RecipeListItem } from '../../types/recipe';
 import RecipeItem from '../../components/recipes/RecipeItem';
 import CategoryChip from '../../components/recipes/CategoryChip';
 
-const AGE_GROUPS = ['Tất cả', '6-8 tháng', '9-11 tháng', '12-24 tháng'];
-const CATEGORIES = ['Tất cả', 'Cháo/Súp', 'Ăn dặm thô', 'Tráng miệng', 'Đồ ăn nhẹ'];
+const AGE_PRESETS: { label: string; min?: number; max?: number }[] = [
+    { label: 'Tất cả' },
+    { label: '6-8 tháng', min: 6, max: 8 },
+    { label: '9-11 tháng', min: 9, max: 11 },
+    { label: '12+ tháng', min: 12 },
+];
 
 const SearchRecipeScreen = ({ navigation }: any) => {
     const [query, setQuery] = useState('');
-    const [ageGroup, setAgeGroup] = useState('Tất cả');
-    const [category, setCategory] = useState('Tất cả');
+    const [ageIndex, setAgeIndex] = useState(0);
     const [results, setResults] = useState<RecipeListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
@@ -20,10 +23,11 @@ const SearchRecipeScreen = ({ navigation }: any) => {
         setLoading(true);
         setSearched(true);
         try {
+            const preset = AGE_PRESETS[ageIndex];
             const data = await recipeService.search({
                 query: query.trim() || undefined,
-                ageGroup: ageGroup === 'Tất cả' ? undefined : ageGroup,
-                category: category === 'Tất cả' ? undefined : category,
+                minAge: preset.min,
+                maxAge: preset.max,
             });
             setResults(data);
         } catch (e) {
@@ -47,20 +51,12 @@ const SearchRecipeScreen = ({ navigation }: any) => {
             <Text style={styles.filterLabel}>Độ tuổi</Text>
             <FlatList
                 horizontal
-                data={AGE_GROUPS}
-                keyExtractor={(item) => item}
+                data={AGE_PRESETS}
+                keyExtractor={(item) => item.label}
                 showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => <CategoryChip label={item} active={ageGroup === item} onPress={() => setAgeGroup(item)} />}
-                style={styles.chipList}
-            />
-
-            <Text style={styles.filterLabel}>Loại món</Text>
-            <FlatList
-                horizontal
-                data={CATEGORIES}
-                keyExtractor={(item) => item}
-                showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => <CategoryChip label={item} active={category === item} onPress={() => setCategory(item)} />}
+                renderItem={({ item, index }) => (
+                    <CategoryChip label={item.label} active={ageIndex === index} onPress={() => setAgeIndex(index)} />
+                )}
                 style={styles.chipList}
             />
 

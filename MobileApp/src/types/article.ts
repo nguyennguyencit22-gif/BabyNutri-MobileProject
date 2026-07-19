@@ -1,17 +1,19 @@
 export interface Article {
-    id: number;
-    title: string;
-    summary: string;
-    content: string;
-    imageUrl: string;
-    author: string;
-    publishedAt: string;
+  id: number;
+  expert_id: number;
+  title: string;
+  content: string;
+  image_url: string;
+  summary: string | null;
+  published_date: string | null;
+  author: string; // từ JOIN users
 }
 
 export interface ArticleListItem {
-    id: number;
-    title: string;
-    summary: string;
-    imageUrl: string;
-    publishedAt: string;
+  id: number;
+  title: string;
+  summary: string | null;
+  image_url: string;
+  published_date: string | null;
+  author: string;
 }

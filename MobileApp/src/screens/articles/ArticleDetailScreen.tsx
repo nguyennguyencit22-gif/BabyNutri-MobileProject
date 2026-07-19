@@ -9,8 +9,7 @@ const ArticleDetailScreen = ({ route }: any) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        articleService
-            .getById(id)
+        articleService.getById(id)
             .then(setArticle)
             .catch((e) => console.error('Load article error:', e))
             .finally(() => setLoading(false));
@@ -21,10 +20,13 @@ const ArticleDetailScreen = ({ route }: any) => {
 
     return (
         <ScrollView style={styles.container}>
-            <Image source={{ uri: article.imageUrl }} style={styles.image} />
+            <Image source={{ uri: article.image_url }} style={styles.image} />
             <View style={styles.content}>
                 <Text style={styles.title}>{article.title}</Text>
-                <Text style={styles.meta}>Tác giả: {article.author} · {new Date(article.publishedAt).toLocaleDateString('vi-VN')}</Text>
+                <Text style={styles.meta}>
+                    Tác giả: {article.author}
+                    {article.published_date ? ` · ${new Date(article.published_date).toLocaleDateString('vi-VN')}` : ''}
+                </Text>
                 <Text style={styles.body}>{article.content}</Text>
             </View>
         </ScrollView>
@@ -34,7 +36,7 @@ const ArticleDetailScreen = ({ route }: any) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFFBF5' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    image: { width: '100%', height: 220 },
+    image: { width: '100%', height: 220, backgroundColor: '#EEE' },
     content: { padding: 18 },
     title: { fontSize: 22, fontWeight: '800', color: '#2E2E2E', marginBottom: 8 },
     meta: { fontSize: 12, color: '#8A8A8A', marginBottom: 16 },

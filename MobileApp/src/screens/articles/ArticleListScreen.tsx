@@ -21,9 +21,7 @@ const ArticleListScreen = ({ navigation }: any) => {
         }
     }, []);
 
-    useEffect(() => {
-        loadArticles();
-    }, [loadArticles]);
+    useEffect(() => { loadArticles(); }, [loadArticles]);
 
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#FF7A59" /></View>;
 
@@ -34,9 +32,7 @@ const ArticleListScreen = ({ navigation }: any) => {
                 data={articles}
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={styles.list}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadArticles(); }} colors={['#FF7A59']} />
-                }
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadArticles(); }} colors={['#FF7A59']} />}
                 renderItem={({ item }) => (
                     <ArticleCard article={item} onPress={() => navigation.navigate('ArticleDetail', { id: item.id })} />
                 )}
