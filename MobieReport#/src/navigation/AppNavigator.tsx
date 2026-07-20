@@ -7,49 +7,39 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import { RootStackParamList } from './navigationTypes';
+import WelcomeScreen from '../screens/auth/WelcomeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Login"
-        screenOptions={{
-          headerBackTitle: 'Back',
-        }}>
+      <Stack.Navigator initialRouteName="Welcome">
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
+          options={{ headerShown: false }}
+        />
+
         <Stack.Screen
           name="Login"
           component={LoginScreen}
-          options={{
-            title: 'Login',
-            headerShown: false,
-          }}
+          options={{ headerShown: false }}
         />
 
         <Stack.Screen
           name="Register"
           component={RegisterScreen}
-          options={{
-            title: 'Create Account',
-          }}
         />
 
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          options={{
-            title: 'BabyNutri',
-            headerBackVisible: false,
-          }}
         />
 
         <Stack.Screen
           name="Profile"
           component={ProfileScreen}
-          options={{
-            title: 'Profile',
-          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
